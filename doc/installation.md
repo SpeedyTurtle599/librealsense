@@ -13,13 +13,13 @@
 
 **Note:** Due to the USB 3.0 translation layer between native hardware and virtual machine, the *librealsense* team does not support installation in a VM. \
 If you do choose to try it, we recommend using VMware Workstation Player, and not Oracle VirtualBox for proper emulation of the USB3 controller. \
-Please ensure to work with the supported Kernel versions listed [here](https://github.com/IntelRealSense/librealsense/releases/) and verify that the kernel is updated properly according to the instructions.
+Please ensure to work with the supported Kernel versions listed [here](https://github.com/realsenseai/librealsense/releases/) and verify that the kernel is updated properly according to the instructions.
 
 
 ## Prerequisites
 
-**Note:** We are supporting **Ubuntu 18/20/22 LTS** versions. \
-**Note:** The scripts and commands below invoke `wget, git, add-apt-repository` which may be blocked by router settings or a firewall. \
+Supported versions are:  **Ubuntu 20/22/24 LTS** versions. 
+> **Note:** The scripts and commands below invoke `wget, git, add-apt-repository` which may be blocked by router settings or a firewall. \
 Infrequently, apt-get mirrors or repositories may also cause timeout. For _librealsense_ users behind an enterprise firewall, \
 configuring the system-wide Ubuntu proxy generally resolves most timeout issues.
 
@@ -29,21 +29,25 @@ Some OEM/Vendors choose to lock the kernel for modifications. Unlocking this cap
 
 ## Install dependencies
 
-1. Make Ubuntu up-to-date including the latest stable kernel:
+1. Make Ubuntu packages up-to-date:
    ```sh
-   sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade
+   sudo apt-get update && sudo apt-get upgrade
    ```
-2. Install the core packages required to build _librealsense_ binaries and the affected kernel modules:
+   > Note - Optional - Update kenel to the latest stable kernel (Assuming already supported by RealSense, see supported kernel versions below)
+   
+   > `sudo apt-get dist-upgrade`
+   
+3. Install the core packages required to build _librealsense_ binaries and the affected kernel modules:
    ```sh
    sudo apt-get install libssl-dev libusb-1.0-0-dev libudev-dev pkg-config libgtk-3-dev
    ```
    **Cmake Note:** certain _librealsense_ [CMAKE](https://cmake.org/download/) flags (e.g. CUDA) require version 3.8+ which is currently not made available via apt manager for Ubuntu LTS.
-3. Install build tools
+4. Install build tools
    ```sh
    sudo apt-get install git wget cmake build-essential
    ```
-4. Prepare Linux Backend and the Dev. Environment \
-   Unplug any connected Intel RealSense camera and run:
+5. Prepare Linux Backend and the Dev. Environment \
+   Unplug any connected RealSense camera and run:
    ```sh
    sudo apt-get install libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev at
    ```
@@ -66,27 +70,29 @@ if not the SDK will use a timer polling approach which is less sensitive for dev
 1. Clone/Download the latest stable version of _librealsense2_ in one of the following ways:
    * Clone the _librealsense2_ repo
      ```sh
-     git clone https://github.com/IntelRealSense/librealsense.git
+     git clone https://github.com/realsenseai/librealsense.git
      ```
    * Download and unzip the latest stable _librealsense2_ version from `master` branch \
-     [IntelRealSense.zip](https://github.com/IntelRealSense/librealsense/archive/master.zip)
+     [realsenseai.zip](https://github.com/realsenseai/librealsense/archive/master.zip)
 
-2. Run Intel Realsense permissions script from _librealsense2_ root directory:
+2. Run Realsense permissions script from _librealsense2_ root directory:
    ```sh
+   cd librealsense
    ./scripts/setup_udev_rules.sh
    ```
    Notice: You can always remove permissions by running: `./scripts/setup_udev_rules.sh --uninstall`
 
 3. Build and apply patched kernel modules for:
-    * Ubuntu 20/22 (focal/jammy) with LTS kernel 5.13, 5.15, 5.19, 6.2, 6.5 \
+    * Ubuntu 20/22/24 (focal/jammy/noble) with LTS kernel 5.15, 5.19, 6.5, 6.8, 6.11, 6.14 \
       `./scripts/patch-realsense-ubuntu-lts-hwe.sh`
-    * Ubuntu 18/20 with LTS kernel (< 5.13) \
+    * Ubuntu 20 with LTS kernel (< 5.13) \
      `./scripts/patch-realsense-ubuntu-lts.sh`
 
     **Note:** What the *.sh script perform?
     The script above will download, patch and build realsense-affected kernel modules (drivers). \
     Then it will attempt to insert the patched module instead of the active one. If failed
     the original uvc modules will be restored.
+    
 
    >  Check the patched modules installation by examining the generated log as well as inspecting the latest entries in kernel log: \
        `sudo dmesg | tail -n 50` \
@@ -127,7 +133,7 @@ if not the SDK will use a timer polling approach which is less sensitive for dev
     **Note:** If you encounter the following error during compilation `gcc: internal compiler error` \
     it might indicate that you do not have enough memory or swap space on your machine. \
     Try closing memory consuming applications, and if you are running inside a VM, increase available RAM to at least 2 GB. \
-    **Note:** You can find more information about the available configuration options on [this wiki page](https://github.com/IntelRealSense/librealsense/wiki/Build-Configuration).
+    **Note:** You can find more information about the available configuration options on [this wiki page](https://github.com/realsenseai/librealsense/wiki/Build-Configuration).
 
   
 ## Troubleshooting Installation and Patch-related Issues
@@ -137,7 +143,10 @@ if not the SDK will use a timer polling approach which is less sensitive for dev
 | ` Multiple realsense udev-rules were found!`                                                              | The issue occurs when user install both Debians and manual from source     | Remove the unneeded installation (manual / Deb)                                                                                |
 | `git.launchpad... access timeout`                                                                         | Behind Firewall                                                            | Configure Proxy Server                                                                                                         |
 | `dmesg:... uvcvideo: module verification failed: signature and/or required key missing - tainting kernel` | A standard warning issued since Kernel 4.4-30+                             | Notification only - does not affect module's functionality                                                                     |
-| `sudo modprobe uvcvideo` produces `dmesg: uvc kernel module is not loaded`                                | The patched module kernel version is incompatible with the resident kernel | Verify the actual kernel version with `uname -r`. Revert and proceed from [Make Ubuntu Up-to-date](#install-dependencies) step |
-| Execution of `./scripts/patch-realsense-ubuntu-lts-hwe.sh` fails with `fatal error: openssl/opensslv.h`   | Missing Dependency                                                         | Install _openssl_ package                                                                                                      |
+| `sudo modprobe uvcvideo` produces `dmesg: uvc kernel module is not loaded`                                | The patched module kernel version is incompatible with the resident kernel | Verify the actual kernel 
+version with `uname -r`. Revert and proceed from [Make Ubuntu Up-to-date](#install-dependencies) step |
+| execution of `./scripts/patch-realsense-ubuntu-lts-hwe.sh` fails with `fatal error: openssl/opensslv.h`   | Missing Dependency                                                         | Install _openssl_ package   |
+| build failure due to `fastrtps` / `fastcdr` dependencies issue | SDK tries to integrate eProsima Fast-DDS library and cannot build/find it on the current machine | build with -DBUILD_WITH_DDS=OFF |
+| build failure due to `curl`  dependencies issue | SDK tries to integrate libcurl library and cannot build/find it on the current machine | build with -DCHECK_FOR_UPDATES=OFF |
 
   <p align="right">(<a href="#readme-top">back to top</a>)</p>
